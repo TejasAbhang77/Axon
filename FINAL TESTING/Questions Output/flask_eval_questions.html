@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>flask_eval_questions</title>
+    
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown.min.css">
+<style>
+    .markdown-body {
+        box-sizing: border-box;
+        min-width: 200px;
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 45px;
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+    }
+    @media (max-width: 767px) {
+        .markdown-body {
+            padding: 15px;
+        }
+    }
+</style>
+
+</head>
+<body class="markdown-body">
+    <h1>Flask Codebase — RAG Evaluation Question Bank</h1>
+<p><strong>Research Study:</strong> Hybrid RAG vs. Standalone Retrieval for Code Comprehension<br />
+<strong>Source Repository:</strong> <code>data/repos/flask/src/flask/</code><br />
+<strong>Generated For:</strong> Comparative benchmarking of Vector-Only, Graph-Only, and Hybrid RAG pipelines<br />
+<strong>Total Questions:</strong> 20</p>
+<hr />
+<blockquote>
+<p>[!NOTE]
+All questions are derived strictly from the Flask source code as read from the repository. No external knowledge, hallucinated APIs, or behaviors outside the codebase have been introduced.</p>
+</blockquote>
+<hr />
+<h2>Question Taxonomy</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Factual</strong></td>
+<td>Single-hop lookup of a specific value, class, or definition</td>
+</tr>
+<tr>
+<td><strong>Multi-hop</strong></td>
+<td>Requires traversing multiple files or function calls to reach the answer</td>
+</tr>
+<tr>
+<td><strong>Call-chain reasoning</strong></td>
+<td>Requires tracing a precise execution sequence through the codebase</td>
+</tr>
+<tr>
+<td><strong>Architectural</strong></td>
+<td>Requires understanding the design role of a module or class hierarchy</td>
+</tr>
+<tr>
+<td><strong>Security analysis</strong></td>
+<td>Focuses on security-sensitive code paths, key handling, or cookie behavior</td>
+</tr>
+<tr>
+<td><strong>Dependency tracing</strong></td>
+<td>Requires identifying what a component depends on or what depends on it</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Evaluation Questions</h2>
+<hr />
+<h3>Q01</h3>
+<p><strong>Question:</strong> What is the default value of <code>SESSION_COOKIE_HTTPONLY</code> in the Flask application's configuration, and in which file is this default defined?</p>
+<p><strong>Question Type:</strong> Factual<br />
+<strong>Expected Retrieval Complexity:</strong> Low<br />
+<strong>Evaluation Rationale:</strong> Tests whether a pipeline can precisely locate a single configuration key-value pair inside <code>app.py</code>'s <code>default_config</code> <code>ImmutableDict</code>. Vector retrieval should succeed here using keyword matching on the config key. Graph retrieval is expected to fail as this is a pure data lookup, not a structural relationship. This baseline question establishes a lower bound for all three pipelines.</p>
+<hr />
+<h3>Q02</h3>
+<p><strong>Question:</strong> Which class does <code>Flask</code> directly inherit from, and which file defines that parent class?</p>
+<p><strong>Question Type:</strong> Multi-hop / Architectural<br />
+<strong>Expected Retrieval Complexity:</strong> Low<br />
+<strong>Evaluation Rationale:</strong> Requires identifying <code>Flask</code> in <code>app.py</code>, then locating its parent <code>App</code> in <code>sansio/app.py</code>. Graph-only retrieval should excel here as the inheritance edge is a pure structural relationship. Vector retrieval may succeed if it retrieves the class definition chunk. Hybrid is expected to explain the design intent (sansio layer) using both.</p>
+<hr />
+<h3>Q03</h3>
+<p><strong>Question:</strong> What is the complete call chain from an incoming HTTP request to the invocation of a registered view function in Flask's WSGI layer?</p>
+<p><strong>Question Type:</strong> Call-chain reasoning<br />
+<strong>Expected Retrieval Complexity:</strong> High<br />
+<strong>Evaluation Rationale:</strong> Requires tracing: <code>__call__</code> → <code>wsgi_app</code> → <code>AppContext.push</code> → <code>full_dispatch_request</code> → <code>preprocess_request</code> → <code>dispatch_request</code> → <code>view_functions[rule.endpoint]</code>. This is a deep, multi-hop call chain spanning <code>app.py</code> and <code>ctx.py</code>. The graph-only pipeline should identify the structural edges but lack semantic context. The hybrid pipeline is expected to outperform both by fusing the call graph with docstring-level explanations.</p>
+<hr />
+<h3>Q04</h3>
+<p><strong>Question:</strong> When <code>full_dispatch_request</code> catches an exception from <code>dispatch_request</code>, which method does it call to handle it, and what does that method do with <code>HTTPException</code> subclasses versus other exceptions?</p>
+<p><strong>Question Type:</strong> Call-chain reasoning / Control-flow<br />
+<strong>Expected Retrieval Complexity:</strong> Medium<br />
+<strong>Evaluation Rationale:</strong> Tests whether pipelines can trace the branching logic inside <code>handle_user_exception</code> in <code>app.py</code>. This requires understanding the conditional difference between <code>HTTPException</code> (forwarded to <code>handle_http_exception</code>) and generic <code>Exception</code> (handler lookup via <code>_find_error_handler</code>). Hybrid pipeline is expected to provide the most complete answer by combining graph edges with semantic code understanding.</p>
+<hr />
+<h3>Q05</h3>
+<p><strong>Question:</strong> How does <code>SecureCookieSessionInterface.open_session</code> validate an incoming session cookie, and what cryptographic library does it rely on?</p>
+<p><strong>Question Type:</strong> Security analysis / Dependency tracing<br />
+<strong>Expected Retrieval Complexity:</strong> Medium<br />
+<strong>Evaluation Rationale:</strong> Requires tracing <code>open_session</code> in <code>sessions.py</code>, through <code>get_signing_serializer</code>, which constructs an <code>itsdangerous.URLSafeTimedSerializer</code>. Tests whether pipelines can identify the external library dependency (<code>itsdangerous</code>) and explain its role in signature validation (guarding against <code>BadSignature</code>). Vector retrieval may surface the docstring; graph retrieval shows the call to <code>get_signing_serializer</code>. Hybrid is expected to produce the most complete security-aware answer.</p>
+<hr />
+<h3>Q06</h3>
+<p><strong>Question:</strong> What happens if <code>SECRET_KEY</code> is not set in the Flask application configuration when a session cookie is requested? Trace the code path that leads to this failure mode.</p>
+<p><strong>Question Type:</strong> Security analysis / Call-chain reasoning<br />
+<strong>Expected Retrieval Complexity:</strong> High<br />
+<strong>Evaluation Rationale:</strong> Requires a multi-hop trace: <code>AppContext._get_session</code> → <code>SessionInterface.open_session</code> → <code>SecureCookieSessionInterface.open_session</code> → <code>get_signing_serializer</code> (returns <code>None</code>) → <code>open_session</code> returns <code>None</code> → <code>make_null_session</code> is called → <code>NullSession._fail</code> raises <code>RuntimeError</code>. Critically tests whether pipelines can trace a failure path across three classes in <code>ctx.py</code> and <code>sessions.py</code>. Hybrid pipeline is expected to win because graph traversal finds the call chain and vector search finds the <code>NullSession</code> error message.</p>
+<hr />
+<h3>Q07</h3>
+<p><strong>Question:</strong> What is the role of the <code>_AppCtxGlobals</code> class in Flask, and how is an instance of it made accessible to the developer during a request?</p>
+<p><strong>Question Type:</strong> Architectural / Multi-hop<br />
+<strong>Expected Retrieval Complexity:</strong> Medium<br />
+<strong>Evaluation Rationale:</strong> Requires connecting <code>_AppCtxGlobals</code> in <code>ctx.py</code> to its instantiation inside <code>AppContext.__init__</code> (as <code>self.g</code>), and then understanding that it is accessed via the <code>g</code> proxy from <code>globals.py</code>. Tests cross-file architectural understanding. Graph retrieval should find structural instantiation edges. Vector retrieval may surface the docstring. Hybrid is expected to provide the most coherent architectural explanation.</p>
+<hr />
+<h3>Q08</h3>
+<p><strong>Question:</strong> How does <code>copy_current_request_context</code> ensure that a background task spawned from a view function can still access <code>flask.request</code> and <code>flask.session</code>?</p>
+<p><strong>Question Type:</strong> Multi-hop / Call-chain reasoning<br />
+<strong>Expected Retrieval Complexity:</strong> High<br />
+<strong>Evaluation Rationale:</strong> Tests understanding of <code>copy_current_request_context</code> in <code>ctx.py</code>, which copies the active <code>AppContext</code> and wraps the function in a <code>with ctx:</code> block. Requires understanding context variable isolation (<code>contextvars</code>), the <code>AppContext.copy()</code> method, and the lifecycle of context variables. The hybrid pipeline is expected to outperform because graph structure traces the method calls and vector semantics explain the concurrency warning in the docstring.</p>
+<hr />
+<h3>Q09</h3>
+<p><strong>Question:</strong> When does Flask add a <code>Vary: Cookie</code> header to an HTTP response, and which function in <code>sessions.py</code> is responsible for this behavior?</p>
+<p><strong>Question Type:</strong> Security analysis / Factual<br />
+<strong>Expected Retrieval Complexity:</strong> Medium<br />
+<strong>Evaluation Rationale:</strong> Requires identifying <code>save_session</code> in <code>SecureCookieSessionInterface</code>, which checks <code>session.accessed</code> to add <code>response.vary.add("Cookie")</code>. Tests whether pipelines can combine factual attribute retrieval (<code>accessed</code> flag) with understanding the security implication (caching layer defense against session data leakage). Graph retrieval gives the structural path; vector gives the semantic meaning. Hybrid is expected to explain both the mechanism and its intent.</p>
+<hr />
+<h3>Q10</h3>
+<p><strong>Question:</strong> What is the difference between <code>after_this_request</code> and <code>app.after_request</code>, and what runtime constraint does <code>after_this_request</code> enforce?</p>
+<p><strong>Question Type:</strong> Architectural / Factual<br />
+<strong>Expected Retrieval Complexity:</strong> Medium<br />
+<strong>Evaluation Rationale:</strong> Requires reading the docstring and implementation of <code>after_this_request</code> in <code>ctx.py</code>, which checks <code>ctx.has_request</code> and raises a <code>RuntimeError</code> if not inside a request context. Contrasting with <code>app.after_request</code> (registered on the app for all requests) requires cross-file architectural awareness. Tests whether vector-only retrieval can surface the contextual difference between global and per-request decorators, which the graph pipeline would struggle to differentiate semantically.</p>
+<hr />
+<h3>Q11</h3>
+<p><strong>Question:</strong> Trace the call chain that Flask follows when <code>app.run()</code> is invoked, up to the point where the underlying Werkzeug server is started.</p>
+<p><strong>Question Type:</strong> Call-chain reasoning<br />
+<strong>Expected Retrieval Complexity:</strong> Medium<br />
+<strong>Evaluation Rationale:</strong> Requires reading <code>Flask.run()</code> in <code>app.py</code> — including its check for <code>FLASK_RUN_FROM_CLI</code>, the call to <code>cli.load_dotenv()</code>, debug flag resolution, <code>cli.show_server_banner()</code>, and finally <code>werkzeug.serving.run_simple()</code>. Tests sequential reasoning across multiple conditional branches within a single method. Graph-only pipeline is expected to find the outbound call edges; vector retrieval finds the docstring. Hybrid is expected to provide the most complete narrative answer.</p>
+<hr />
+<h3>Q12</h3>
+<p><strong>Question:</strong> Which functions are registered as Jinja2 global variables when <code>create_jinja_environment</code> is called, and which files do those functions originate from?</p>
+<p><strong>Question Type:</strong> Dependency tracing / Multi-hop<br />
+<strong>Expected Retrieval Complexity:</strong> Medium<br />
+<strong>Evaluation Rationale:</strong> Requires reading <code>Flask.create_jinja_environment</code> in <code>app.py</code> and identifying that <code>url_for</code>, <code>get_flashed_messages</code>, <code>config</code>, <code>request</code>, <code>session</code>, and <code>g</code> are injected. Then requires tracing imports back to <code>helpers.py</code> and <code>globals.py</code>. Tests whether pipelines can perform import-level dependency tracing. Graph retrieval excels at tracing imports structurally; vector retrieval may miss the origin files. Hybrid is expected to clearly attribute each variable to its source module.</p>
+<hr />
+<h3>Q13</h3>
+<p><strong>Question:</strong> What architectural decision in Flask 3.2 merged <code>RequestContext</code> into <code>AppContext</code>, and what backward-compatibility mechanism was put in place for code that still references <code>RequestContext</code>?</p>
+<p><strong>Question Type:</strong> Architectural / Factual<br />
+<strong>Expected Retrieval Complexity:</strong> Medium<br />
+<strong>Evaluation Rationale:</strong> Requires reading the module-level <code>__getattr__</code> function at the bottom of <code>ctx.py</code>, which emits a <code>DeprecationWarning</code> when <code>RequestContext</code> is accessed and returns <code>AppContext</code>. Tests whether pipelines can surface historically significant architectural changes documented in module-level functions rather than classes or docstrings. Vector retrieval should find the deprecation message; graph retrieval may miss the <code>__getattr__</code> function. Hybrid is expected to provide the richest answer combining the structural note and the semantic deprecation context.</p>
+<hr />
+<h3>Q14</h3>
+<p><strong>Question:</strong> How does <code>send_from_directory</code> in <code>helpers.py</code> differ from directly calling <code>send_file</code>, and what security guarantee does it provide?</p>
+<p><strong>Question Type:</strong> Security analysis / Dependency tracing<br />
+<strong>Expected Retrieval Complexity:</strong> Medium<br />
+<strong>Evaluation Rationale:</strong> Requires reading <code>send_from_directory</code> in <code>helpers.py</code>, which delegates to <code>werkzeug.utils.send_from_directory</code> via <code>_prepare_send_file_kwargs</code>. The security guarantee is path sanitization using <code>safe_join</code> (documented in the docstring). Tests whether pipelines can surface a security-relevant docstring distinction between two related functions and trace the delegation chain. Vector retrieval excels at docstring-level comparisons; graph retrieval traces the call delegation.</p>
+<hr />
+<h3>Q15</h3>
+<p><strong>Question:</strong> What is the purpose of the <code>ensure_sync</code> method in the <code>Flask</code> class, and what does it call when it receives an <code>async def</code> function?</p>
+<p><strong>Question Type:</strong> Factual / Dependency tracing<br />
+<strong>Expected Retrieval Complexity:</strong> Low<br />
+<strong>Evaluation Rationale:</strong> Requires reading <code>Flask.ensure_sync</code> in <code>app.py</code>, which checks <code>iscoroutinefunction</code> and delegates to <code>async_to_sync</code>, which in turn imports and calls <code>asgiref.sync.async_to_sync</code>. Tests a two-hop lookup that bridges Flask's synchronous WSGI interface with async support. This question has a clear factual answer but also a dependency (on <code>asgiref</code>) that requires cross-file tracing. Establishes the utility of combining semantic search with structural call edges.</p>
+<hr />
+<h3>Q16</h3>
+<p><strong>Question:</strong> What is the complete dependency chain from <code>flask.flash()</code> to storing data in the session, including which global proxies are accessed and in which files they are defined?</p>
+<p><strong>Question Type:</strong> Dependency tracing / Multi-hop<br />
+<strong>Expected Retrieval Complexity:</strong> High<br />
+<strong>Evaluation Rationale:</strong> Requires tracing <code>flash()</code> in <code>helpers.py</code> → <code>session.get("_flashes", [])</code> (via <code>globals.py</code> proxy) → <code>session["_flashes"] = flashes</code> → <code>message_flashed.send(...)</code> (via <code>signals.py</code>). This is a full multi-hop chain across <code>helpers.py</code>, <code>globals.py</code>, and <code>signals.py</code>. The graph-only pipeline should find structural edges but lack the semantic explanation of why data is written this way (avoiding mutable structure sync issues documented in the comment). Hybrid is expected to provide the best answer.</p>
+<hr />
+<h3>Q17</h3>
+<p><strong>Question:</strong> How does <code>preprocess_request</code> determine which before-request functions to run, and in what order does it process them when a Blueprint is involved?</p>
+<p><strong>Question Type:</strong> Call-chain reasoning / Architectural<br />
+<strong>Expected Retrieval Complexity:</strong> High<br />
+<strong>Evaluation Rationale:</strong> Requires locating <code>preprocess_request</code> in <code>sansio/app.py</code> (or <code>app.py</code>) and understanding that it iterates over <code>(None,)</code> followed by <code>reversed(ctx.request.blueprints)</code>, calling all registered <code>before_request_funcs</code> for each name. Tests multi-level architectural understanding: the general app level vs. blueprint-specific hooks, and the significance of the reversed blueprint order. Graph-only retrieval should trace the function call to <code>before_request_funcs</code>; vector retrieval finds the docstring. Hybrid is expected to explain the ordering rationale.</p>
+<hr />
+<h3>Q18</h3>
+<p><strong>Question:</strong> If a Flask subclass overrides <code>dispatch_request</code> without including <code>ctx: AppContext</code> as its first parameter, what happens at class definition time, and which mechanism triggers this behavior?</p>
+<p><strong>Question Type:</strong> Architectural / Call-chain reasoning<br />
+<strong>Expected Retrieval Complexity:</strong> High<br />
+<strong>Evaluation Rationale:</strong> Requires reading <code>Flask.__init_subclass__</code> in <code>app.py</code>, which inspects method signatures of overridden methods using <code>inspect.signature</code>. If the second parameter (after <code>self</code>) is not annotated as <code>AppContext</code> or named <code>ctx</code>, it emits a <code>DeprecationWarning</code> and wraps the method with <code>remove_ctx</code> / <code>add_ctx</code> decorators to preserve backward compatibility. This is a deeply embedded metaclass-style mechanism that only the hybrid pipeline is expected to explain fully — graph traversal finds the <code>remove_ctx</code>/<code>add_ctx</code> call edges, and vector search finds the deprecation warning semantics.</p>
+<hr />
+<h3>Q19</h3>
+<p><strong>Question:</strong> Describe the full lifecycle of a session cookie from the moment a request arrives until the response is sent back to the client, citing the specific methods and files involved.</p>
+<p><strong>Question Type:</strong> Call-chain reasoning / Security analysis<br />
+<strong>Expected Retrieval Complexity:</strong> High<br />
+<strong>Evaluation Rationale:</strong> Requires a full multi-hop trace spanning <code>ctx.py</code> (<code>AppContext.push</code> → <code>_get_session</code> → <code>si.open_session</code>) and <code>app.py</code> (<code>finalize_request</code> → <code>process_response</code>) to <code>sessions.py</code> (<code>save_session</code>, <code>should_set_cookie</code>, <code>get_expiration_time</code>, <code>get_signing_serializer</code>, <code>response.set_cookie</code>). This end-to-end security lifecycle question is the most demanding in the evaluation set. The graph-only pipeline is expected to recover the call chain skeleton; vector-only may recover the semantic meaning of individual methods. Only the hybrid pipeline is expected to synthesize a complete, accurate, and well-attributed lifecycle answer.</p>
+<hr />
+<h3>Q20</h3>
+<p><strong>Question:</strong> What conditions must be true for <code>SecureCookieSessionInterface.save_session</code> to actually write a <code>Set-Cookie</code> header to the response, and what happens when the session is modified to be empty?</p>
+<p><strong>Question Type:</strong> Security analysis / Control-flow<br />
+<strong>Expected Retrieval Complexity:</strong> Medium<br />
+<strong>Evaluation Rationale:</strong> Requires reading the conditional logic inside <code>save_session</code> in <code>sessions.py</code>: if <code>not session</code> (empty) AND <code>session.modified</code>, then <code>delete_cookie</code> is called; if not empty, <code>should_set_cookie</code> determines whether to write the cookie (based on <code>modified</code> or <code>permanent</code> + <code>SESSION_REFRESH_EACH_REQUEST</code>). Tests whether pipelines can trace branching control-flow within a single security-critical method and articulate the different behavioral outcomes. Vector retrieval should surface the method body; graph retrieval shows the call to <code>should_set_cookie</code>. Hybrid is expected to clearly explain all branches and their security implications.</p>
+<hr />
+<h2>Summary Table</h2>
+<table>
+<thead>
+<tr>
+<th>Q#</th>
+<th>Question Focus</th>
+<th>Type</th>
+<th>Complexity</th>
+<th>Primary File(s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q01</td>
+<td>Default <code>SESSION_COOKIE_HTTPONLY</code> value</td>
+<td>Factual</td>
+<td>Low</td>
+<td><code>app.py</code></td>
+</tr>
+<tr>
+<td>Q02</td>
+<td>Flask class inheritance hierarchy</td>
+<td>Multi-hop / Architectural</td>
+<td>Low</td>
+<td><code>app.py</code>, <code>sansio/app.py</code></td>
+</tr>
+<tr>
+<td>Q03</td>
+<td>Full request-to-view-function call chain</td>
+<td>Call-chain reasoning</td>
+<td>High</td>
+<td><code>app.py</code>, <code>ctx.py</code></td>
+</tr>
+<tr>
+<td>Q04</td>
+<td>Exception handling branching in <code>full_dispatch_request</code></td>
+<td>Call-chain / Control-flow</td>
+<td>Medium</td>
+<td><code>app.py</code></td>
+</tr>
+<tr>
+<td>Q05</td>
+<td>Session cookie cryptographic validation</td>
+<td>Security analysis</td>
+<td>Medium</td>
+<td><code>sessions.py</code></td>
+</tr>
+<tr>
+<td>Q06</td>
+<td>Missing <code>SECRET_KEY</code> failure path</td>
+<td>Security / Call-chain</td>
+<td>High</td>
+<td><code>sessions.py</code>, <code>ctx.py</code></td>
+</tr>
+<tr>
+<td>Q07</td>
+<td>Role of <code>_AppCtxGlobals</code> and <code>g</code> proxy</td>
+<td>Architectural / Multi-hop</td>
+<td>Medium</td>
+<td><code>ctx.py</code>, <code>globals.py</code></td>
+</tr>
+<tr>
+<td>Q08</td>
+<td><code>copy_current_request_context</code> background task safety</td>
+<td>Multi-hop / Call-chain</td>
+<td>High</td>
+<td><code>ctx.py</code></td>
+</tr>
+<tr>
+<td>Q09</td>
+<td><code>Vary: Cookie</code> header and <code>session.accessed</code></td>
+<td>Security analysis</td>
+<td>Medium</td>
+<td><code>sessions.py</code></td>
+</tr>
+<tr>
+<td>Q10</td>
+<td><code>after_this_request</code> vs <code>app.after_request</code></td>
+<td>Architectural</td>
+<td>Medium</td>
+<td><code>ctx.py</code></td>
+</tr>
+<tr>
+<td>Q11</td>
+<td><code>app.run()</code> call chain to Werkzeug server</td>
+<td>Call-chain reasoning</td>
+<td>Medium</td>
+<td><code>app.py</code></td>
+</tr>
+<tr>
+<td>Q12</td>
+<td>Jinja2 global variables injection and origins</td>
+<td>Dependency tracing</td>
+<td>Medium</td>
+<td><code>app.py</code>, <code>helpers.py</code>, <code>globals.py</code></td>
+</tr>
+<tr>
+<td>Q13</td>
+<td><code>RequestContext</code> → <code>AppContext</code> merger in Flask 3.2</td>
+<td>Architectural</td>
+<td>Medium</td>
+<td><code>ctx.py</code></td>
+</tr>
+<tr>
+<td>Q14</td>
+<td><code>send_from_directory</code> security guarantee vs <code>send_file</code></td>
+<td>Security / Dependency</td>
+<td>Medium</td>
+<td><code>helpers.py</code></td>
+</tr>
+<tr>
+<td>Q15</td>
+<td><code>ensure_sync</code> and async view support</td>
+<td>Factual / Dependency</td>
+<td>Low</td>
+<td><code>app.py</code></td>
+</tr>
+<tr>
+<td>Q16</td>
+<td><code>flash()</code> to session storage dependency chain</td>
+<td>Dependency tracing</td>
+<td>High</td>
+<td><code>helpers.py</code>, <code>globals.py</code>, <code>signals.py</code></td>
+</tr>
+<tr>
+<td>Q17</td>
+<td><code>preprocess_request</code> blueprint hook ordering</td>
+<td>Call-chain / Architectural</td>
+<td>High</td>
+<td><code>sansio/app.py</code></td>
+</tr>
+<tr>
+<td>Q18</td>
+<td><code>__init_subclass__</code> method signature enforcement</td>
+<td>Architectural / Call-chain</td>
+<td>High</td>
+<td><code>app.py</code></td>
+</tr>
+<tr>
+<td>Q19</td>
+<td>Full session cookie request-to-response lifecycle</td>
+<td>Call-chain / Security</td>
+<td>High</td>
+<td><code>ctx.py</code>, <code>app.py</code>, <code>sessions.py</code></td>
+</tr>
+<tr>
+<td>Q20</td>
+<td><code>save_session</code> <code>Set-Cookie</code> write conditions</td>
+<td>Security / Control-flow</td>
+<td>Medium</td>
+<td><code>sessions.py</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Evaluation Protocol Notes</h2>
+<ul>
+<li><strong>Scoring Dimensions:</strong> Accuracy, Completeness, Source Attribution, Reasoning Depth (4-point Likert scale per dimension)</li>
+<li><strong>Expected Pipeline Rankings:</strong></li>
+<li><strong>Low complexity questions (Q01, Q02, Q15):</strong> Vector ≈ Hybrid &gt; Graph</li>
+<li><strong>Medium complexity questions (Q04, Q05, Q09, Q10, Q11, Q12, Q13, Q14, Q17, Q20):</strong> Hybrid &gt; Vector ≥ Graph</li>
+<li><strong>High complexity questions (Q03, Q06, Q07, Q08, Q16, Q18, Q19):</strong> Hybrid &gt;&gt; Vector &gt; Graph</li>
+<li><strong>Reproducibility:</strong> All questions are tied to specific, versioned source files in the Flask repository. Answers can be ground-truthed by manual code inspection.</li>
+</ul>
+</body>
+</html>

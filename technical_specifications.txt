@@ -1,0 +1,138 @@
+================================================================================
+  HYBRID RAG FOR CODEBASE COMPREHENSION — IMPLEMENTATION SPECIFICATION
+================================================================================
+
+This document outlines the true technical specifications of the modules 
+implemented up to Goal 2.
+
+1. SEMANTIC VECTOR INDEXING (Completed)
+================================================================================
+Purpose: Retrieves relevant codebase chunks based on natural language similarity.
+File: src/vector/index_builder.py
+
+- Chunking Granularity: Function and Class level. The AST parses exact line numbers, removing metadata/imports from chunks to keep them pure.
+- Embedding Model: OpenAI's `text-embedding-3-small`.
+- Vector Database: ChromaDB (Persistent local storage).
+- Search Metric: Distance mapping. (Lower distance = higher semantic similarity).
+
+2. STRUCTURAL GRAPH RETRIEVAL (Completed)
+================================================================================
+Purpose: Answers architectural queries (Impact mapping and Dependency tracking) using exact code structures without LLM hallucination.
+Files: src/ast_parser/parser.py, src/graph/builder.py, src/retrieval/graph_searcher.py
+
+A. AST Parsing (tree-sitter)
+----------------------------
+- Generates a Concrete Syntax Tree (CST).
+- Dynamically extracts Function Nodes, Class Nodes, Decorators, and Import paths.
+- Call Resolution: Removes syntactic sugar (e.g., strips "self." from python method calls to match global function definitions).
+
+B. Dependency Graph Construction (NetworkX)
+-------------------------------------------
+- Architecture: Directed Graph (DiGraph).
+- Nodes (V): Files, Classes, Functions.
+- Edges (E): CALLS (Function A -> Function B), CONTAINS (File -> Class).
+- Cross-File Name Resolution Map: Resolves called functions across different files in the repository using the extracted `ImportInfo`. 
+
+C. Graph Search Engine
+----------------------
+1. Target Extraction (Fuzzy Matching): 
+   - Uses `difflib.get_close_matches` utilizing Ratcliff/Obershelp pattern recognition (conceptually related to Levenshtein distance).
+   - Cutoff Threshold: `0.85`. This prevents catastrophic graph misses if a user types "encrypp" instead of "encrypt".
+
+2. Search Direction Heuristic:
+   - Impact (Backward Traversal): Reverses the directed graph (`G^T`) to compute `nx.descendants_at_distance`. Answers "Who calls me?"
+   - Dependency (Forward Traversal): Computes `nx.descendants_at_distance` on the standard graph `G`. Answers "Who do I call?"
+
+3. Mathematical Formulas / Algorithms Employed:
+   - Shortest Path (Exact Call Traces): Uses Breadth-First Search (BFS) natively via `networkx.shortest_path(G, source, target)` to calculate the shortest path in an unweighted directed graph.
+   - Architectural Risk Centrality (In-Degree):
+     Formula: C_in(v) = deg_in(v)
+     (The number of incoming edges pointing to node v).
+     If In-Degree > 5: High Risk (Red)
+     If In-Degree > 2: Medium Risk (Yellow)
+     Else: Low Risk (Green)
+
+3. ORCHESTRATOR CLI (Completed)
+================================================================================
+Purpose: Creates a unified environment to build indexes and run standard comparisons.
+File: cli.py
+
+- Automatically clones GitHub repos securely into local `data/repos`.
+- Orchestrates pipeline builds: triggers `parser.py` (AST) and `index_builder.py` (Embeddings) sequentially.
+- Interactive Search Loop: Runs `searcher.py` and `graph_searcher.py` in tandem for manual visual comparisons.
+
+
+================================================================================
+  3. LLM QUERY INTENT ROUTER & ZERO-TOKEN MATCHING (Completed)
+================================================================================
+Purpose: Dynamically extracts user intent and targeted code blocks from natural language without rigid regex boundaries.
+File: src/rag/query_router.py
+
+A. Pre-Routing Architecture:
+- Model: GPT-4o-mini (Zero-Shot JSON Extraction).
+- The pipeline intercepts the raw query and returns strict JSON: {"target_nodes": [...], "direction": "backward"|"forward"|"both"}.
+- Prevents the Vector index from polluting the graph search by ensuring the graph ONLY searches architecturally relevant keys.
+
+B. Zero-Token Local Substring Fallback (O(N) Complexity):
+- To prevent devastating context window bloat on massive repositories (e.g., over 50,000 nodes), we DO NOT inject the repository's symbol table into the LLM system prompt.
+- Instead, the LLM runs "blind" (extracting literal short keywords like "split"). 
+- The Graph Searcher then executes a highly optimized O(N) local substring match check (length > 3) against the master `available_names` list in RAM to resolve the LLM's raw intent to fully qualified architectural nodes natively (e.g., "split" securely resolves to "split_key_flexible").
+
+================================================================================
+  4. HYBRID FUSION ENGINE (Completed)
+================================================================================
+Purpose: Simultaneously queries the Vector DB and the Graph Engine, fusing their facts into a single structural block.
+File: src/rag/hybrid_pipeline.py
+
+- Context Injection: Feeds strings from `get_context_string_for_llm()` directly into GPT-4o-mini alongside Vector chunks.
+- The Context Prompt completely restricts the LLM to use Graph Data for all architectural boundaries, and Vector Data exclusively for inline code explanations, fully neutralizing code-structure hallucinations.
+- Modularized into `pipeline.py` (Pure Vector), `graph_pipeline.py` (Pure Structure), and `hybrid_pipeline.py`.
+
+================================================================================
+  5. CLASS INHERITANCE TRACKING (Completed)
+================================================================================
+Purpose: Tracks hierarchical Object-Oriented polymorphism across multiple files.
+File: src/graph/builder.py
+
+- Native AST Modification: Parses the `bases` array of Python Classes during the physical AST traversal phase.
+- Injects a directed edge with property `relation='inherits'` from Child Class -> Parent Class.
+- Allows the native Graph Searcher's `get_impact_radius` to calculate transitive structural breakages downstream if a Parent Class is modified.
+
+================================================================================
+  6. FASTAPI BACKEND & VITE REACT FRONTEND (Completed)
+================================================================================
+Purpose: Provides a complete Web Dashboard for Agentic Structural & Semantic Space Exploration.
+Files: api.py, frontend/src/App.jsx, frontend/src/App.css
+
+A. FastAPI Backend (api.py)
+----------------------------
+- Endpoints:
+  - `GET /api/repos`: Scans `data/repos` for dynamically indexed codebases.
+  - `POST /api/repos/clone`: Natively clones GitHub repositories via Git and subprocesses `ACTIVE_REPO` dynamically.
+  - `POST /api/query`: Routes User queries to the Hybrid, Graph, or Vector Python engine based on the UI payload.
+- Environment Isolation: Dynamically injects `os.environ["ACTIVE_REPO"]` before interacting with ChromaDB/NetworkX to prevent multi-tenant data bleed.
+
+B. React/Vite Frontend
+----------------------------
+- Architecture: Component-based state UI, dynamically mapped dropdown menus.
+- UI Style: Glassmorphism layout (`App.css`).
+- Analytical Dashboard: Displays textual LLM answers alongside explicit Context Syntax Badges (Vector metadata line traces).
+
+================================================================================
+  RUN COMMANDS
+================================================================================
+
+To Boot the Backend API Server:
+-------------------------------
+> python api.py
+(Runs on http://localhost:8000. Uses hot-reload natively via Uvicorn).
+
+To Boot the React Web Frontend:
+-------------------------------
+> cd frontend
+> npm run dev
+(Runs on http://localhost:5173).
+
+To Boot the Interactive Orchestrator CLI:
+-----------------------------------------
+> python cli.py

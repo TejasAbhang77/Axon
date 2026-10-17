@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap');
+
+:root {
+  --bg-base: #0a0a0c;
+  --bg-surface: #121216;
+  --bg-panel: #1a1a20;
+  --primary: #4ade80;
+  --primary-glow: rgba(74, 222, 128, 0.2);
+  --secondary: #60a5fa;
+  --accent: #f472b6;
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(255, 255, 255, 0.2);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  background-image: radial-gradient(circle at top right, rgba(96, 165, 250, 0.05), transparent 40%),
+                    radial-gradient(circle at bottom left, rgba(74, 222, 128, 0.05), transparent 40%);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a35;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f50;
+}
+
+code, pre {
+  font-family: 'Fira Code', monospace;
+}

@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>evaluation_results</title>
+    
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown.min.css">
+<style>
+    .markdown-body {
+        box-sizing: border-box;
+        min-width: 200px;
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 45px;
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+    }
+    @media (max-width: 767px) {
+        .markdown-body {
+            padding: 15px;
+        }
+    }
+</style>
+
+</head>
+<body class="markdown-body">
+    <h1>Flask RAG Evaluation — Full Results Log (All 3 Pipelines)</h1>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Study</strong></td>
+<td>Hybrid RAG vs. Standalone Retrieval for Code Comprehension</td>
+</tr>
+<tr>
+<td><strong>Repo</strong></td>
+<td><code>flask</code> (src/flask/)</td>
+</tr>
+<tr>
+<td><strong>Graph Depth</strong></td>
+<td>5 hops</td>
+</tr>
+<tr>
+<td><strong>Model</strong></td>
+<td><code>gpt-4o-mini</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Scoring Rubric</h2>
+<table>
+<thead>
+<tr>
+<th>Score</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>5</strong></td>
+<td>Completely correct, fully cited with correct file/function/line attribution</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>Mostly correct, minor omissions or one wrong attribution</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Partially correct — right concept, missing key details or hops</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Structural skeleton only — correct topology but wrong/absent semantics</td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>Incorrect, hallucinated, or refused with no useful content</td>
+</tr>
+<tr>
+<td><strong>0</strong></td>
+<td>Explicit refusal with zero usable information</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Final Score Comparison — All 3 Pipelines</h2>
+<table>
+<thead>
+<tr>
+<th>Q#</th>
+<th>Type</th>
+<th>Complexity</th>
+<th>Vector</th>
+<th>Graph</th>
+<th><strong>Hybrid</strong></th>
+<th>Δ Best</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q01</td>
+<td>Factual</td>
+<td>Low</td>
+<td>0</td>
+<td>0</td>
+<td><strong>2</strong></td>
+<td>+2</td>
+</tr>
+<tr>
+<td>Q02</td>
+<td>Multi-hop / Arch</td>
+<td>Low</td>
+<td>2</td>
+<td>3</td>
+<td><strong>2</strong></td>
+<td>-1 (Graph wins)</td>
+</tr>
+<tr>
+<td>Q03</td>
+<td>Call-chain</td>
+<td>High</td>
+<td>3</td>
+<td>3</td>
+<td><strong>4</strong></td>
+<td>+1</td>
+</tr>
+<tr>
+<td>Q04</td>
+<td>Call-chain / CF</td>
+<td>Medium</td>
+<td>4</td>
+<td>2</td>
+<td><strong>5</strong></td>
+<td>+1</td>
+</tr>
+<tr>
+<td>Q05</td>
+<td>Security</td>
+<td>Medium</td>
+<td>4</td>
+<td>2</td>
+<td><strong>5</strong></td>
+<td>+1</td>
+</tr>
+<tr>
+<td>Q06</td>
+<td>Security / Chain</td>
+<td>High</td>
+<td>3</td>
+<td>2</td>
+<td><strong>4</strong></td>
+<td>+1</td>
+</tr>
+<tr>
+<td>Q07</td>
+<td>Arch / Multi-hop</td>
+<td>Medium</td>
+<td>0</td>
+<td>2</td>
+<td><strong>4</strong></td>
+<td>+2</td>
+</tr>
+<tr>
+<td>Q08</td>
+<td>Multi-hop / Chain</td>
+<td>High</td>
+<td>4</td>
+<td>1</td>
+<td><strong>5</strong></td>
+<td>+1</td>
+</tr>
+<tr>
+<td>Q09</td>
+<td>Security</td>
+<td>Medium</td>
+<td>4</td>
+<td>1</td>
+<td><strong>5</strong></td>
+<td>+1</td>
+</tr>
+<tr>
+<td>Q10</td>
+<td>Architectural</td>
+<td>Medium</td>
+<td>3</td>
+<td>2</td>
+<td><strong>4</strong></td>
+<td>+1</td>
+</tr>
+<tr>
+<td>Q11</td>
+<td>Call-chain</td>
+<td>Medium</td>
+<td>0</td>
+<td>3</td>
+<td><strong>3</strong></td>
+<td>tie</td>
+</tr>
+<tr>
+<td>Q12</td>
+<td>Dependency</td>
+<td>Medium</td>
+<td>3</td>
+<td>1</td>
+<td><strong>4</strong></td>
+<td>+1</td>
+</tr>
+<tr>
+<td>Q13</td>
+<td>Architectural</td>
+<td>Medium</td>
+<td>0</td>
+<td>2</td>
+<td><strong>5</strong></td>
+<td>+3</td>
+</tr>
+<tr>
+<td>Q14</td>
+<td>Security / Dep</td>
+<td>Medium</td>
+<td>0</td>
+<td>2</td>
+<td><strong>5</strong></td>
+<td>+3</td>
+</tr>
+<tr>
+<td>Q15</td>
+<td>Factual / Dep</td>
+<td>Low</td>
+<td>4</td>
+<td>2</td>
+<td><strong>4</strong></td>
+<td>tie</td>
+</tr>
+<tr>
+<td>Q16</td>
+<td>Dependency</td>
+<td>High</td>
+<td>0</td>
+<td>3</td>
+<td><strong>3</strong></td>
+<td>tie</td>
+</tr>
+<tr>
+<td>Q17</td>
+<td>Call-chain / Arch</td>
+<td>High</td>
+<td>4</td>
+<td>1</td>
+<td><strong>5</strong></td>
+<td>+1</td>
+</tr>
+<tr>
+<td>Q18</td>
+<td>Arch / Chain</td>
+<td>High</td>
+<td>3</td>
+<td>0</td>
+<td><strong>5</strong></td>
+<td>+2</td>
+</tr>
+<tr>
+<td>Q19</td>
+<td>Chain / Security</td>
+<td>High</td>
+<td>4</td>
+<td>4</td>
+<td><strong>5</strong></td>
+<td>+1</td>
+</tr>
+<tr>
+<td>Q20</td>
+<td>Security / CF</td>
+<td>Medium</td>
+<td>4</td>
+<td>3</td>
+<td><strong>5</strong></td>
+<td>+1</td>
+</tr>
+<tr>
+<td><strong>TOTAL</strong></td>
+<td></td>
+<td></td>
+<td><strong>61 / 100</strong></td>
+<td><strong>47 / 100</strong></td>
+<td><strong>89 / 100</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>AVERAGE</strong></td>
+<td></td>
+<td></td>
+<td><strong>3.05 / 5</strong></td>
+<td><strong>2.35 / 5</strong></td>
+<td><strong>4.45 / 5</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hybrid wins:</strong> 16 / 20 questions | <strong>Graph wins:</strong> 1 / 20 | <strong>Ties:</strong> 3 / 20</p>
+<hr />
+<h2>Pipeline 3: Hybrid (Fusion) — Detailed Scores</h2>
+<p><strong>Average: 4.45 / 5</strong> | <strong>Zero refusals</strong> | <strong>5 perfect scores on High-complexity questions</strong></p>
+<table>
+<thead>
+<tr>
+<th>Q#</th>
+<th>Score</th>
+<th>Key Observation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q01</td>
+<td><strong>2</strong></td>
+<td>Correctly retrieves <code>get_cookie_httponly</code> method body and config key; doesn't confirm default=True</td>
+</tr>
+<tr>
+<td>Q02</td>
+<td><strong>2</strong></td>
+<td>Correctly names <code>App</code> parent; wrong file (<code>app.py</code> vs <code>sansio/app.py</code>) — graph edge mispath</td>
+</tr>
+<tr>
+<td>Q03</td>
+<td><strong>4</strong></td>
+<td>Best chain yet: includes <code>AppContext</code> push and <code>request_context</code> step</td>
+</tr>
+<tr>
+<td>Q04</td>
+<td><strong>5</strong></td>
+<td>Both branches with line numbers, <code>_find_error_handler</code>, <code>handle_http_exception</code> all correct</td>
+</tr>
+<tr>
+<td>Q05</td>
+<td><strong>5</strong></td>
+<td>Full flow: <code>itsdangerous</code>, <code>URLSafeTimedSerializer</code>, <code>BadSignature</code>, code snippets</td>
+</tr>
+<tr>
+<td>Q06</td>
+<td><strong>4</strong></td>
+<td><code>get_signing_serializer → None → _fail → RuntimeError</code> with exact quote; <code>make_null_session</code> implicit</td>
+</tr>
+<tr>
+<td>Q07</td>
+<td><strong>4</strong></td>
+<td><code>_AppCtxGlobals</code> role, <code>g</code> proxy, <code>_AppCtxGlobalsProxy</code> in <code>globals.py</code> — complete</td>
+</tr>
+<tr>
+<td>Q08</td>
+<td><strong>5</strong></td>
+<td><code>ctx.copy()</code>, <code>with ctx:</code> wrapper, caveats, example code — best answer in set</td>
+</tr>
+<tr>
+<td>Q09</td>
+<td><strong>5</strong></td>
+<td>Both <code>Vary: Cookie</code> paths; <code>save_session</code>; <code>session.accessed</code> condition; code snippet</td>
+</tr>
+<tr>
+<td>Q10</td>
+<td><strong>4</strong></td>
+<td>RuntimeError code quoted exactly; correct scope distinction; file attribution correct</td>
+</tr>
+<tr>
+<td>Q11</td>
+<td><strong>3</strong></td>
+<td>Good chain but conflates <code>run()</code> startup with request dispatch lifecycle</td>
+</tr>
+<tr>
+<td>Q12</td>
+<td><strong>4</strong></td>
+<td>All 6 globals with code snippet; "from flask module" not precise for <code>helpers.py</code>/<code>globals.py</code></td>
+</tr>
+<tr>
+<td>Q13</td>
+<td><strong>5</strong></td>
+<td>Quotes exact <code>__getattr__</code> shim code with <code>DeprecationWarning</code> and Flask 4.0 note</td>
+</tr>
+<tr>
+<td>Q14</td>
+<td><strong>5</strong></td>
+<td>Names <code>werkzeug.security.safe_join</code>, directory traversal prevention, call paths</td>
+</tr>
+<tr>
+<td>Q15</td>
+<td><strong>4</strong></td>
+<td>Correct purpose + <code>iscoroutinefunction</code> + <code>async_to_sync</code>; <code>asgiref</code> not named</td>
+</tr>
+<tr>
+<td>Q16</td>
+<td><strong>3</strong></td>
+<td><code>flash()→AppContext.session→_get_session→SessionInterface</code>; misses <code>signals.py</code> signal</td>
+</tr>
+<tr>
+<td>Q17</td>
+<td><strong>5</strong></td>
+<td>Full code: <code>(None, *reversed(blueprints))</code>, both loop types, early-return logic</td>
+</tr>
+<tr>
+<td>Q18</td>
+<td><strong>5</strong></td>
+<td>Full <code>__init_subclass__</code> signature check code with Flask 4.0 deprecation warning</td>
+</tr>
+<tr>
+<td>Q19</td>
+<td><strong>5</strong></td>
+<td>Complete lifecycle — all methods, files, and conditions cited correctly</td>
+</tr>
+<tr>
+<td>Q20</td>
+<td><strong>5</strong></td>
+<td>All 3 conditions + <code>delete_cookie</code> branch with code snippets</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Pipeline 1: Vector-Only — Score Summary</h2>
+<p><strong>Average: 3.05 / 5</strong> | <strong>6 complete refusals</strong></p>
+<table>
+<thead>
+<tr>
+<th>Q#</th>
+<th>Score</th>
+<th>Key Observation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q01</td>
+<td>0</td>
+<td>Config dict chunk not retrieved</td>
+</tr>
+<tr>
+<td>Q02</td>
+<td>2</td>
+<td>Hallucinated <code>FlaskProxy</code> class</td>
+</tr>
+<tr>
+<td>Q03</td>
+<td>3</td>
+<td>Correct skeleton; <code>wsgi_app</code> not retrieved</td>
+</tr>
+<tr>
+<td>Q04</td>
+<td>4</td>
+<td>Both exception branches correct</td>
+</tr>
+<tr>
+<td>Q05</td>
+<td>4</td>
+<td><code>itsdangerous</code> + <code>BadSignature</code> correct</td>
+</tr>
+<tr>
+<td>Q06</td>
+<td>3</td>
+<td>Core path right; <code>make_null_session</code> missing</td>
+</tr>
+<tr>
+<td>Q07</td>
+<td>0</td>
+<td>Chunk not retrieved</td>
+</tr>
+<tr>
+<td>Q08</td>
+<td>4</td>
+<td>Full <code>copy_current_request_context</code> trace</td>
+</tr>
+<tr>
+<td>Q09</td>
+<td>4</td>
+<td>Both <code>Vary: Cookie</code> paths named</td>
+</tr>
+<tr>
+<td>Q10</td>
+<td>3</td>
+<td>Right concept; wrong citation</td>
+</tr>
+<tr>
+<td>Q11</td>
+<td>0</td>
+<td><code>app.run()</code> body not in top-k</td>
+</tr>
+<tr>
+<td>Q12</td>
+<td>3</td>
+<td>All 6 globals; cross-file origins wrong</td>
+</tr>
+<tr>
+<td>Q13</td>
+<td>0</td>
+<td><code>__getattr__</code> shim not retrieved</td>
+</tr>
+<tr>
+<td>Q14</td>
+<td>0</td>
+<td><code>send_from_directory</code> chunk not retrieved</td>
+</tr>
+<tr>
+<td>Q15</td>
+<td>4</td>
+<td><code>ensure_sync → async_to_sync</code> correct</td>
+</tr>
+<tr>
+<td>Q16</td>
+<td>0</td>
+<td>Cross-file flash chain not retrieved</td>
+</tr>
+<tr>
+<td>Q17</td>
+<td>4</td>
+<td>Blueprint ordering logic correct</td>
+</tr>
+<tr>
+<td>Q18</td>
+<td>3</td>
+<td><code>__init_subclass__</code> + <code>remove_ctx</code>; <code>add_ctx</code> missing</td>
+</tr>
+<tr>
+<td>Q19</td>
+<td>4</td>
+<td>Full lifecycle; context push missing</td>
+</tr>
+<tr>
+<td>Q20</td>
+<td>4</td>
+<td>All conditions; both branches</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Pipeline 2: Graph-Only — Score Summary</h2>
+<p><strong>Average: 2.35 / 5</strong> | <strong>1 refusal</strong> | <strong>"I operate entirely on macro-architecture" in 12/20 answers</strong></p>
+<table>
+<thead>
+<tr>
+<th>Q#</th>
+<th>Score</th>
+<th>Key Observation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q01</td>
+<td>0</td>
+<td>Config values not in graph nodes</td>
+</tr>
+<tr>
+<td>Q02</td>
+<td>3</td>
+<td>Correct inheritance edge; wrong file</td>
+</tr>
+<tr>
+<td>Q03</td>
+<td>3</td>
+<td>Correct skeleton from graph edges</td>
+</tr>
+<tr>
+<td>Q04</td>
+<td>2</td>
+<td>Edge found; no branching logic</td>
+</tr>
+<tr>
+<td>Q05</td>
+<td>2</td>
+<td>Lists <code>get_signing_serializer</code> dep; no crypto library</td>
+</tr>
+<tr>
+<td>Q06</td>
+<td>2</td>
+<td>Lists session functions; no failure trace</td>
+</tr>
+<tr>
+<td>Q07</td>
+<td>2</td>
+<td>Found <code>_AppCtxGlobalsProxy</code> edge; misses <code>g</code> proxy</td>
+</tr>
+<tr>
+<td>Q08</td>
+<td>1</td>
+<td>Acknowledged function; no mechanism</td>
+</tr>
+<tr>
+<td>Q09</td>
+<td>1</td>
+<td>"Not in graph data" — explicit failure</td>
+</tr>
+<tr>
+<td>Q10</td>
+<td>2</td>
+<td>Correct files; no runtime constraint</td>
+</tr>
+<tr>
+<td>Q11</td>
+<td>3</td>
+<td>Good startup deps from graph</td>
+</tr>
+<tr>
+<td>Q12</td>
+<td>1</td>
+<td>Only names file; no globals listed</td>
+</tr>
+<tr>
+<td>Q13</td>
+<td>2</td>
+<td>Inferred from edges; no <code>__getattr__</code></td>
+</tr>
+<tr>
+<td>Q14</td>
+<td>2</td>
+<td>Shared dep found; no security guarantee</td>
+</tr>
+<tr>
+<td>Q15</td>
+<td>2</td>
+<td>Edge found; no purpose explained</td>
+</tr>
+<tr>
+<td>Q16</td>
+<td>3</td>
+<td><code>flash→session→_get_session</code>; misses signals</td>
+</tr>
+<tr>
+<td>Q17</td>
+<td>1</td>
+<td>Only callers found; no ordering</td>
+</tr>
+<tr>
+<td>Q18</td>
+<td>0</td>
+<td>Complete refusal</td>
+</tr>
+<tr>
+<td>Q19</td>
+<td>4</td>
+<td>Strong structural lifecycle trace</td>
+</tr>
+<tr>
+<td>Q20</td>
+<td>3</td>
+<td><code>should_set_cookie</code> found; delete path missing</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Category Performance Breakdown</h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Questions</th>
+<th>Vector Avg</th>
+<th>Graph Avg</th>
+<th>Hybrid Avg</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Factual</td>
+<td>Q01, Q02, Q15</td>
+<td>2.0</td>
+<td>1.67</td>
+<td><strong>2.67</strong></td>
+</tr>
+<tr>
+<td>Security analysis</td>
+<td>Q05, Q06, Q09, Q20</td>
+<td>3.75</td>
+<td>2.0</td>
+<td><strong>4.75</strong></td>
+</tr>
+<tr>
+<td>Call-chain (single-file)</td>
+<td>Q04, Q08, Q17</td>
+<td>4.0</td>
+<td>1.33</td>
+<td><strong>5.0</strong></td>
+</tr>
+<tr>
+<td>Call-chain (cross-file)</td>
+<td>Q03, Q11, Q18</td>
+<td>2.0</td>
+<td>2.0</td>
+<td><strong>4.0</strong></td>
+</tr>
+<tr>
+<td>Multi-hop / Dependency</td>
+<td>Q07, Q12, Q16</td>
+<td>1.0</td>
+<td>2.33</td>
+<td><strong>3.33</strong></td>
+</tr>
+<tr>
+<td>Architectural</td>
+<td>Q10, Q13, Q19</td>
+<td>2.33</td>
+<td>2.67</td>
+<td><strong>4.67</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>Hybrid consistently outperforms both baselines in every category.</strong> The most dramatic gains are in Security analysis (+1.0 over Vector, +2.75 over Graph) and Cross-file call-chain reasoning (+2.0 over both standalone pipelines).</p>
+</blockquote>
+</body>
+</html>

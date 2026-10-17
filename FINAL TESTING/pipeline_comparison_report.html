@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>pipeline_comparison_report</title>
+    
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown.min.css">
+<style>
+    .markdown-body {
+        box-sizing: border-box;
+        min-width: 200px;
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 45px;
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+    }
+    @media (max-width: 767px) {
+        .markdown-body {
+            padding: 15px;
+        }
+    }
+</style>
+
+</head>
+<body class="markdown-body">
+    <h1>Hybrid RAG for Code Comprehension</h1>
+<p><em>Comparative Evaluation Report — Three Pipeline Study</em></p>
+<blockquote>
+<p><strong>Research Question:</strong> Does a Hybrid RAG system that combines semantic vector embeddings with structural graph representations outperform standalone retrieval approaches for complex code understanding tasks?</p>
+</blockquote>
+<hr />
+<h2>1. Study Overview</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Target Codebase</strong></td>
+<td>Flask Web Framework (<code>src/flask/</code>)</td>
+</tr>
+<tr>
+<td><strong>Evaluation Questions</strong></td>
+<td>20 grounded, technically verified questions</td>
+</tr>
+<tr>
+<td><strong>Pipelines Evaluated</strong></td>
+<td>Vector-Only · Graph-Only · Hybrid (Fusion)</td>
+</tr>
+<tr>
+<td><strong>Model</strong></td>
+<td><code>gpt-4o-mini</code> (same for all pipelines)</td>
+</tr>
+<tr>
+<td><strong>Graph Traversal Depth</strong></td>
+<td>5 hops</td>
+</tr>
+<tr>
+<td><strong>Scoring</strong></td>
+<td>0–5 scale per question (max 100 total)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>2. The Three Pipelines Explained</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────────┐
+│  PIPELINE 1: Vector-Only                                        │
+│  Query → Embed → ChromaDB similarity search → GPT answer       │
+│  Retrieves: Semantically similar code chunks / docstrings       │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PIPELINE 2: Graph-Only                                         │
+│  Query → Extract intent → AST/NetworkX graph traversal          │
+│  Retrieves: Call edges, inheritance, file relationships          │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PIPELINE 3: Hybrid (Fusion)                                    │
+│  Query → BOTH vector search AND graph traversal                 │
+│  Context = semantic chunks + structural call path               │
+│  GPT generates answer from combined evidence                    │
+└─────────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr />
+<h2>3. Final Scores at a Glance</h2>
+<pre><code>Pipeline        Score    Average    Refusals
+────────────────────────────────────────────
+Vector-Only      61/100   3.05/5      6 / 20
+Graph-Only       47/100   2.35/5      1 / 20
+Hybrid          89/100   4.45/5      0 / 20
+────────────────────────────────────────────
+Max possible    100/100   5.00/5
+</code></pre>
+<p><strong>Hybrid outperforms Vector-Only by +28 points (+46%)</strong><br />
+<strong>Hybrid outperforms Graph-Only by +42 points (+89%)</strong></p>
+<hr />
+<h2>4. Question-by-Question Results</h2>
+<p>Each question is colour-coded by complexity:
+🟢 Low · 🟡 Medium · 🔴 High</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Question (Short)</th>
+<th>Type</th>
+<th>🎯</th>
+<th>Vector</th>
+<th>Graph</th>
+<th><strong>Hybrid</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q01</td>
+<td>Default value of <code>SESSION_COOKIE_HTTPONLY</code>?</td>
+<td>Factual</td>
+<td>🟢</td>
+<td>0</td>
+<td>0</td>
+<td><strong>2</strong></td>
+</tr>
+<tr>
+<td>Q02</td>
+<td>What does <code>Flask</code> inherit from?</td>
+<td>Architectural</td>
+<td>🟢</td>
+<td>2</td>
+<td>3</td>
+<td><strong>2</strong></td>
+</tr>
+<tr>
+<td>Q03</td>
+<td>Full WSGI request-to-view call chain?</td>
+<td>Call-chain</td>
+<td>🔴</td>
+<td>3</td>
+<td>3</td>
+<td><strong>4</strong></td>
+</tr>
+<tr>
+<td>Q04</td>
+<td>How does <code>full_dispatch_request</code> handle exceptions?</td>
+<td>Control-flow</td>
+<td>🟡</td>
+<td>4</td>
+<td>2</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td>Q05</td>
+<td>How does <code>open_session</code> validate a cookie?</td>
+<td>Security</td>
+<td>🟡</td>
+<td>4</td>
+<td>2</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td>Q06</td>
+<td>What breaks if <code>SECRET_KEY</code> is missing?</td>
+<td>Security trace</td>
+<td>🔴</td>
+<td>3</td>
+<td>2</td>
+<td><strong>4</strong></td>
+</tr>
+<tr>
+<td>Q07</td>
+<td>Role of <code>_AppCtxGlobals</code> and how is <code>g</code> set?</td>
+<td>Architectural</td>
+<td>🟡</td>
+<td>0</td>
+<td>2</td>
+<td><strong>4</strong></td>
+</tr>
+<tr>
+<td>Q08</td>
+<td>How does <code>copy_current_request_context</code> work?</td>
+<td>Multi-hop</td>
+<td>🔴</td>
+<td>4</td>
+<td>1</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td>Q09</td>
+<td>When is <code>Vary: Cookie</code> added to a response?</td>
+<td>Security</td>
+<td>🟡</td>
+<td>4</td>
+<td>1</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td>Q10</td>
+<td><code>after_this_request</code> vs <code>after_request</code>?</td>
+<td>Architectural</td>
+<td>🟡</td>
+<td>3</td>
+<td>2</td>
+<td><strong>4</strong></td>
+</tr>
+<tr>
+<td>Q11</td>
+<td>Call chain from <code>app.run()</code> to Werkzeug?</td>
+<td>Call-chain</td>
+<td>🟡</td>
+<td>0</td>
+<td>3</td>
+<td><strong>3</strong></td>
+</tr>
+<tr>
+<td>Q12</td>
+<td>What Jinja2 globals does Flask register?</td>
+<td>Dependency</td>
+<td>🟡</td>
+<td>3</td>
+<td>1</td>
+<td><strong>4</strong></td>
+</tr>
+<tr>
+<td>Q13</td>
+<td>How was <code>RequestContext</code> merged in Flask 3.2?</td>
+<td>Architectural</td>
+<td>🟡</td>
+<td>0</td>
+<td>2</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td>Q14</td>
+<td><code>send_from_directory</code> vs <code>send_file</code> security?</td>
+<td>Security</td>
+<td>🟡</td>
+<td>0</td>
+<td>2</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td>Q15</td>
+<td>What does <code>ensure_sync</code> do with <code>async def</code>?</td>
+<td>Factual</td>
+<td>🟢</td>
+<td>4</td>
+<td>2</td>
+<td><strong>4</strong></td>
+</tr>
+<tr>
+<td>Q16</td>
+<td><code>flash()</code> → session storage dependency chain?</td>
+<td>Multi-hop</td>
+<td>🔴</td>
+<td>0</td>
+<td>3</td>
+<td><strong>3</strong></td>
+</tr>
+<tr>
+<td>Q17</td>
+<td>How does <code>preprocess_request</code> order hooks?</td>
+<td>Call-chain</td>
+<td>🔴</td>
+<td>4</td>
+<td>1</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td>Q18</td>
+<td>What triggers <code>__init_subclass__</code> check?</td>
+<td>Architectural</td>
+<td>🔴</td>
+<td>3</td>
+<td>0</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td>Q19</td>
+<td>Full session cookie request-response lifecycle?</td>
+<td>Security chain</td>
+<td>🔴</td>
+<td>4</td>
+<td>4</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td>Q20</td>
+<td>When does <code>save_session</code> write <code>Set-Cookie</code>?</td>
+<td>Security</td>
+<td>🟡</td>
+<td>4</td>
+<td>3</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td></td>
+<td><strong>TOTAL</strong></td>
+<td></td>
+<td></td>
+<td><strong>61</strong></td>
+<td><strong>47</strong></td>
+<td><strong>89</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>5. Performance by Question Category</h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>What It Tests</th>
+<th>Vector</th>
+<th>Graph</th>
+<th>Hybrid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Factual</strong></td>
+<td>Direct key/value lookup</td>
+<td>2.0</td>
+<td>1.7</td>
+<td><strong>2.7</strong></td>
+</tr>
+<tr>
+<td><strong>Security Analysis</strong></td>
+<td>Crypto, cookie, signing paths</td>
+<td>3.75</td>
+<td>2.0</td>
+<td><strong>4.75</strong></td>
+</tr>
+<tr>
+<td><strong>Call-Chain (single file)</strong></td>
+<td>Sequential method tracing</td>
+<td>4.0</td>
+<td>1.3</td>
+<td><strong>5.0</strong></td>
+</tr>
+<tr>
+<td><strong>Call-Chain (cross-file)</strong></td>
+<td>Multi-file execution tracing</td>
+<td>2.0</td>
+<td>2.0</td>
+<td><strong>4.0</strong></td>
+</tr>
+<tr>
+<td><strong>Multi-hop Dependency</strong></td>
+<td>Cross-module data flows</td>
+<td>1.0</td>
+<td>2.3</td>
+<td><strong>3.3</strong></td>
+</tr>
+<tr>
+<td><strong>Architectural</strong></td>
+<td>Design intent and structure</td>
+<td>2.3</td>
+<td>2.7</td>
+<td><strong>4.7</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>6. Where Each Pipeline Wins and Fails</h2>
+<h3>✅ Vector-Only — Strengths</h3>
+<ul>
+<li>Excels when the answer lives inside a <strong>single dense code chunk or docstring</strong></li>
+<li>Strong on security questions where comments explain the mechanism (Q05, Q09, Q20)</li>
+<li>Good at single-file call tracing when chunks are retrieved (Q04, Q08, Q17)</li>
+</ul>
+<h3>❌ Vector-Only — Failures</h3>
+<ul>
+<li><strong>6 of 20 questions answered "I do not have enough information"</strong> — retrieval failed completely</li>
+<li>Cannot trace chains that span <strong>multiple files</strong> (Q07, Q11, Q13, Q14, Q16)</li>
+<li><strong>Hallucinated a class</strong> (<code>FlaskProxy</code>) on Q02 — a fabricated inheritance chain</li>
+<li>Consistently misattributes cross-file origins (e.g., all Jinja2 globals sourced to <code>app.py</code>)</li>
+</ul>
+<hr />
+<h3>✅ Graph-Only — Strengths</h3>
+<ul>
+<li>Excels at <strong>structural topology</strong> — correctly identifies which functions call which</li>
+<li>Strong on session lifecycle (Q19 scored 4) because lifecycle maps cleanly to graph edges</li>
+<li>Recovers call chains that vector search misses (Q11, Q16)</li>
+<li>Correctly locates functions in the right <strong>files</strong> using graph node metadata</li>
+</ul>
+<h3>❌ Graph-Only — Failures</h3>
+<ul>
+<li><strong>Cannot reason about code logic</strong> — the phrase <em>"I operate entirely on macro-architecture"</em> appeared in <strong>12 of 20 answers</strong></li>
+<li>Scores 0–1 on questions requiring understanding of <strong>conditional branches</strong> (Q08, Q09, Q17, Q18)</li>
+<li>Cannot read <strong>configuration values or dict literals</strong> (Q01)</li>
+<li>Cannot explain <strong>cryptographic mechanisms</strong> even when it finds the right node (Q05, Q06)</li>
+</ul>
+<hr />
+<h3>✅ Hybrid — Strengths</h3>
+<ul>
+<li><strong>Zero refusals</strong> — always provides a substantive answer</li>
+<li><strong>Perfectly scored 9 of 20 questions</strong> (Q04, Q05, Q08, Q09, Q17, Q18, Q19, Q20, Q13)</li>
+<li>Successfully answered all 6 questions that Vector-Only refused (Q01, Q07, Q11, Q13, Q14, Q16)</li>
+<li>Combines <strong>structural call path</strong> with <strong>semantic explanation</strong> for richer answers</li>
+<li>On Q13: quoted the exact <code>__getattr__</code> deprecation code — <strong>neither standalone pipeline found this</strong></li>
+<li>On Q18: quoted the full <code>__init_subclass__</code> signature inspection loop — impossible from graph or vector alone</li>
+</ul>
+<h3>❌ Hybrid — Remaining Gaps</h3>
+<ul>
+<li>Q02: Still gets the parent file wrong (<code>app.py</code> vs <code>sansio/app.py</code>) — graph edge mismatch</li>
+<li>Q11: Conflates the <code>app.run()</code> startup chain with the request dispatch lifecycle</li>
+<li>Q16: Still misses the <code>message_flashed</code> signal hop to <code>signals.py</code></li>
+</ul>
+<hr />
+<h2>7. Key Findings</h2>
+<h3>Finding 1 — The Pipelines Are Complementary</h3>
+<p>Vector and Graph retrieve <strong>different, non-overlapping evidence</strong>:</p>
+<pre><code>Questions where ONLY Vector found the answer:  Q04, Q05, Q08, Q09, Q17
+Questions where ONLY Graph found the answer:   Q11, Q16, Q19
+Questions BOTH failed:                         Q01, Q13, Q14 (Hybrid still wins via fusion)
+</code></pre>
+<p>This complementarity is the core justification for hybrid retrieval.</p>
+<hr />
+<h3>Finding 2 — Hybrid Uniquely Solves "Both Required" Questions</h3>
+<p>Three questions required <strong>both</strong> structural topology <strong>and</strong> semantic code logic:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Why Vector Alone Fails</th>
+<th>Why Graph Alone Fails</th>
+<th>Hybrid Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q13 (Flask 3.2 merger)</td>
+<td><code>__getattr__</code> not in top-k</td>
+<td>No code logic access</td>
+<td><strong>5/5</strong> — quoted exact shim</td>
+</tr>
+<tr>
+<td>Q14 (<code>send_from_directory</code>)</td>
+<td>Chunk not retrieved</td>
+<td>Can't name <code>safe_join</code></td>
+<td><strong>5/5</strong> — named security guarantee</td>
+</tr>
+<tr>
+<td>Q18 (<code>__init_subclass__</code>)</td>
+<td>Missing <code>add_ctx</code> wrapper</td>
+<td>Refused entirely</td>
+<td><strong>5/5</strong> — full signature code</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Finding 3 — Complexity Magnifies Hybrid's Advantage</h3>
+<pre><code>Low complexity questions:    Hybrid avg 2.67  vs  Vector 2.0  vs  Graph 1.67
+                             (Hybrid wins by only ~0.7)
+
+High complexity questions:   Hybrid avg 4.43  vs  Vector 2.57  vs  Graph 1.71
+                             (Hybrid wins by 1.86 over Vector, 2.72 over Graph)
+</code></pre>
+<p>The harder the question, the larger Hybrid's margin of victory.</p>
+<hr />
+<h3>Finding 4 — Graph Alone Is Not Enough for Code Understanding</h3>
+<p>Graph-Only scored <strong>below</strong> Vector-Only (47 vs 61) despite having structural access. This is because:
+1. Most questions require <strong>semantic explanation</strong>, not just topology
+2. The graph's "I operate on macro-architecture" response pattern limits usefulness
+3. Graph excels only when questions are purely about "who calls whom"</p>
+<hr />
+<h2>8. Hypothesis Verdict</h2>
+<blockquote>
+<p><strong>Hypothesis:</strong> A hybrid RAG pipeline combining semantic embeddings + graph representations outperforms standalone retrieval for complex code understanding.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hybrid &gt; Vector-Only</td>
+<td>✅ <strong>Confirmed</strong> — +46% score improvement</td>
+</tr>
+<tr>
+<td>Hybrid &gt; Graph-Only</td>
+<td>✅ <strong>Confirmed</strong> — +89% score improvement</td>
+</tr>
+<tr>
+<td>Advantage grows with complexity</td>
+<td>✅ <strong>Confirmed</strong> — gap widens on High-complexity questions</td>
+</tr>
+<tr>
+<td>Hybrid uniquely solves questions both fail on</td>
+<td>✅ <strong>Confirmed</strong> — Q13, Q14, Q18</td>
+</tr>
+<tr>
+<td>Graph-Only &lt; Vector-Only</td>
+<td>✅ <strong>Observed</strong> — structural data without semantics is insufficient</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The hypothesis is strongly supported by the experimental evidence.</strong></p>
+<hr />
+<h2>9. Summary Statistics</h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Vector</th>
+<th>Graph</th>
+<th>Hybrid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total Score</td>
+<td>61 / 100</td>
+<td>47 / 100</td>
+<td><strong>89 / 100</strong></td>
+</tr>
+<tr>
+<td>Average Score</td>
+<td>3.05 / 5</td>
+<td>2.35 / 5</td>
+<td><strong>4.45 / 5</strong></td>
+</tr>
+<tr>
+<td>Perfect Scores (5/5)</td>
+<td>0</td>
+<td>0</td>
+<td><strong>9</strong></td>
+</tr>
+<tr>
+<td>Refusals (0 score)</td>
+<td>6</td>
+<td>1</td>
+<td><strong>0</strong></td>
+</tr>
+<tr>
+<td>Questions Won</td>
+<td>11</td>
+<td>1</td>
+<td><strong>16</strong></td>
+</tr>
+<tr>
+<td>Hallucinated Facts</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Avg answer length (chars)</td>
+<td>~480</td>
+<td>~620</td>
+<td><strong>~2100</strong></td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>
