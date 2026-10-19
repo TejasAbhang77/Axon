@@ -7,7 +7,13 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
-      - key: OPENAI_API_KEY
+      - key: AI_PROVIDER
+        value: openrouter
+      - key: CHAT_MODEL
+        value: openrouter/free
+      - key: EMBEDDING_MODEL
+        value: liquid/lfm-2.5-embedding-350m:free
+      - key: OPENROUTER_API_KEY
         sync: false
       - key: FRONTEND_ORIGINS
         sync: false

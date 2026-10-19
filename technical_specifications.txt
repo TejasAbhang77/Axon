@@ -11,8 +11,9 @@ Purpose: Retrieves relevant codebase chunks based on natural language similarity
 File: src/vector/index_builder.py
 
 - Chunking Granularity: Function and Class level. The AST parses exact line numbers, removing metadata/imports from chunks to keep them pure.
-- Embedding Model: OpenAI's `text-embedding-3-small`.
-- Vector Database: ChromaDB (Persistent local storage).
+- Default embedding provider/model: OpenRouter free `liquid/lfm-2.5-embedding-350m:free` (1,024 dimensions; 512-token input limit).
+- Optional OpenAI model: `text-embedding-3-small` (1,536 dimensions).
+- Vector Database: ChromaDB (Persistent local storage), namespaced per embedding model.
 - Search Metric: Distance mapping. (Lower distance = higher semantic similarity).
 
 2. STRUCTURAL GRAPH RETRIEVAL (Completed)
@@ -69,7 +70,8 @@ Purpose: Dynamically extracts user intent and targeted code blocks from natural 
 File: src/rag/query_router.py
 
 A. Pre-Routing Architecture:
-- Model: GPT-4o-mini (Zero-Shot JSON Extraction).
+- Default chat provider/model: OpenRouter free router `openrouter/free`; configure `AI_PROVIDER`, `CHAT_MODEL`, and provider key in `.env`.
+- The router requests JSON output; confirm the selected upstream free model supports the requested structured response.
 - The pipeline intercepts the raw query and returns strict JSON: {"target_nodes": [...], "direction": "backward"|"forward"|"both"}.
 - Prevents the Vector index from polluting the graph search by ensuring the graph ONLY searches architecturally relevant keys.
 

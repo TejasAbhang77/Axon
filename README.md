@@ -39,7 +39,7 @@ flowchart LR
     P --> T[Tree-sitter parser]
     P --> G[NetworkX dependency graph]
     P --> V[ChromaDB vector index]
-    P --> L[OpenAI model]
+    P --> L[OpenRouter / OpenAI model]
 ```
 
 ## 🚀 Run locally
@@ -54,11 +54,18 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-Set your OpenAI key in a root `.env` file:
+Create a free API key at [OpenRouter](https://openrouter.ai/keys), copy `.env.example` to `.env`, then set the provider and key in that root `.env` file:
 
 ```env
-OPENAI_API_KEY=your_openai_api_key
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_openrouter_api_key
+CHAT_MODEL=openrouter/free
+EMBEDDING_MODEL=liquid/lfm-2.5-embedding-350m:free
 ```
+
+The OpenRouter free tier has request limits and upstream free-model availability can vary. Axon uses a separate Chroma collection for each embedding model. The free embedding model has a 512-token input limit, so Axon splits long code chunks before indexing. Rebuild the index after changing the embedding model. The current LFM free embedding listing says requests and embeddings may be retained and used to train Liquid models; use public/non-sensitive code unless that policy is acceptable to you.
+
+To use OpenAI instead, set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, `CHAT_MODEL=gpt-4o-mini`, and `EMBEDDING_MODEL=text-embedding-3-small`. OpenAI API usage is billed separately from ChatGPT subscriptions.
 
 Then run the API:
 
@@ -85,7 +92,7 @@ The frontend uses `http://localhost:8000` by default. To point it at another API
 Deployment configuration is included for a separate frontend and API:
 
 - **Frontend:** Import the repository into Vercel and set the project root to `frontend`. Set `VITE_API_URL` to the deployed API URL.
-- **API:** Use the root `render.yaml` blueprint on Render. Set `OPENAI_API_KEY` and set `FRONTEND_ORIGINS` to the deployed Vercel origin.
+- **API:** Use the root `render.yaml` blueprint on Render. Set `OPENROUTER_API_KEY` and set `FRONTEND_ORIGINS` to the deployed Vercel origin.
 
 ## 📁 Repository map
 

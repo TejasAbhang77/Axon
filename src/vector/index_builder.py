@@ -1,51 +1,114 @@
 import os
+import sys
 import json
+import hashlib
+import re
 import chromadb
-from openai import OpenAI
-from dotenv import load_dotenv
 from pathlib import Path
 from typing import List, Dict, Any
 
-# Load environment variables from the project root .env file
-# We look for it in the parent of src/vector/ (which is src/) and its parent (root)
 root_dir = Path(__file__).resolve().parent.parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
+from src.llm_provider import create_client, get_embedding_model, get_provider, is_openrouter_free_embedding
+from dotenv import load_dotenv
+
+# Load environment variables from the project root .env file.
 load_dotenv(root_dir / ".env")
+
+def _truncate_utf8(text: str, max_bytes: int) -> str:
+    encoded = text.encode("utf-8")[:max_bytes]
+    return encoded.decode("utf-8", errors="ignore")
+
+
+def _split_utf8(text: str, max_bytes: int = 450) -> List[str]:
+    """Split text into small pieces compatible with the free model's 512-token cap."""
+    if not text:
+        return [""]
+    pieces = []
+    start = 0
+    while start < len(text):
+        end = start
+        size = 0
+        while end < len(text):
+            char_size = len(text[end].encode("utf-8"))
+            if size + char_size > max_bytes:
+                break
+            size += char_size
+            end += 1
+        if end < len(text):
+            newline = text.rfind("\n", start + max(1, (end - start) // 2), end)
+            if newline > start:
+                end = newline + 1
+        if end == start:
+            end += 1
+        pieces.append(text[start:end])
+        start = end
+    return pieces
+
+
+def _split_chunks_for_free_embedding(chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not is_openrouter_free_embedding():
+        return chunks
+    expanded = []
+    for chunk in chunks:
+        content = chunk["content"]
+        parts = _split_utf8(content)
+        offset = 0
+        for index, part in enumerate(parts):
+            metadata = dict(chunk["metadata"])
+            if len(parts) > 1:
+                start_line = int(metadata.get("line", 1)) + content[:offset].count("\n")
+                line_count = part.count("\n")
+                end_line = start_line + max(0, line_count - (1 if part.endswith("\n") else 0))
+                metadata["line"] = start_line
+                metadata["end_line"] = min(int(metadata.get("end_line", end_line)), end_line)
+                metadata["part"] = index + 1
+                metadata["parts"] = len(parts)
+            item = dict(chunk)
+            item["id"] = f"{chunk['id']}:part:{index + 1}" if len(parts) > 1 else chunk["id"]
+            item["content"] = part
+            item["metadata"] = metadata
+            expanded.append(item)
+            offset += len(part)
+    return expanded
+
 
 class VectorIndex:
     """
     Handles embedding generation and storage in ChromaDB.
     """
     def __init__(self, collection_name: str = None):
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        if not collection_name:
-            collection_name = os.getenv("ACTIVE_REPO", "default")
+        repo_name = collection_name or os.getenv("ACTIVE_REPO", "default")
+        self.embedding_model = get_embedding_model()
+        self.provider = get_provider()
+        self.client = create_client()
 
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment variables.")
-            
-        self.client = OpenAI(api_key=self.api_key)
-        
-        # Initialize ChromaDB persistent storage
+        # Keep vectors from different embedding models in separate collections.
+        # OpenAI's default vectors are 1536-dimensional; the free OpenRouter model
+        # returns 1024 dimensions, so sharing a collection would fail at query time.
+        repo_slug = re.sub(r"[^a-z0-9_-]+", "-", repo_name.lower()).strip("-_") or "default"
+        model_hash = hashlib.sha256(self.embedding_model.encode("utf-8")).hexdigest()[:10]
+        namespaced_collection = f"{repo_slug[:45]}-{model_hash}"
+
         self.chroma_client = chromadb.PersistentClient(path=os.path.join(root_dir, "data", "chroma"))
-        self.collection = self.chroma_client.get_or_create_collection(name=collection_name)
-        
-        # Fallback mechanism for legacy repositories indexed under codebase_index
-        if self.collection.count() == 0:
-            legacy = self.chroma_client.get_or_create_collection(name="codebase_index")
-            if legacy.count() > 0:
-                self.collection = legacy
+        self.collection = self.chroma_client.get_or_create_collection(name=namespaced_collection)
 
     def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
         """
-        Generate embeddings using OpenAI's text-embedding-3-small.
-        Splits into batches of 50 to avoid request timeouts and limits.
-        Truncates individual strings to 20,000 characters to stay within 8k token limit.
+        Generate embeddings with the configured provider and model in batches of 50.
+        The free OpenRouter embedding model is limited to 512 tokens per input;
+        indexing chunks are split before this method is called.
         """
         all_embeddings = []
         batch_size = 50
         
-        # Truncate logic
-        safe_texts = [t[:20000] if len(t) > 20000 else t for t in texts]
+        safe_texts = list(texts)
+        if is_openrouter_free_embedding():
+            # Query text should normally be short. Keep pathological prompts below
+            # the provider's 512-token input cap (UTF-8 byte cap is conservative).
+            safe_texts = [_truncate_utf8(t, 450) for t in safe_texts]
 
         for i in range(0, len(safe_texts), batch_size):
             batch = safe_texts[i : i + batch_size]
@@ -53,7 +116,7 @@ class VectorIndex:
             try:
                 response = self.client.embeddings.create(
                     input=batch,
-                    model="text-embedding-3-small"
+                    model=self.embedding_model
                 )
                 all_embeddings.extend([data.embedding for data in response.data])
             except Exception as e:
@@ -70,6 +133,7 @@ class VectorIndex:
             print(f"Collection '{self.collection.name}' already contains {self.collection.count()} items. Skipping indexing.")
             return
 
+        chunks = _split_chunks_for_free_embedding(chunks)
         ids = [chunk['id'] for chunk in chunks]
         texts = [chunk['content'] for chunk in chunks]
         metadatas = [chunk['metadata'] for chunk in chunks]
@@ -210,5 +274,5 @@ if __name__ == "__main__":
 
     except Exception as e:
         print(f"\n[ERROR] {e}")
-        if "OPENAI_API_KEY" in str(e):
-            print("\nTIP: Create a .env file in the project root with: OPENAI_API_KEY=your_key_here")
+        if "API key" in str(e):
+            print("\nTIP: Configure AI_PROVIDER and the matching API key in the project root .env file.")

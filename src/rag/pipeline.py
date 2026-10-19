@@ -1,12 +1,14 @@
 import os
 import sys
 from pathlib import Path
-from openai import OpenAI
-from dotenv import load_dotenv
 
-# Add project root to path for imports
+# Resolve project root before importing shared project modules.
 root_dir = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(root_dir))
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
+from src.llm_provider import create_client, get_chat_model
+from dotenv import load_dotenv
 
 try:
     from src.vector.index_builder import VectorIndex
@@ -18,14 +20,10 @@ except ImportError:
 load_dotenv(root_dir / ".env")
 
 class RAGPipeline:
-    def __init__(self, model: str = "gpt-4o-mini"):
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment. Please add it to your .env file.")
-            
-        self.client = OpenAI(api_key=self.api_key)
+    def __init__(self, model: str | None = None):
+        self.client = create_client()
         self.vector_index = VectorIndex()
-        self.model = model
+        self.model = model or get_chat_model()
 
     def answer_query(self, query: str, n_results: int = 5):
         """
@@ -80,7 +78,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Full RAG Pipeline for Codebase Comprehension")
     parser.add_argument("query", type=str, help="Question about the codebase.")
-    parser.add_argument("--model", type=str, default="gpt-4o-mini", help="OpenAI model to use.")
+    parser.add_argument("--model", type=str, default=None, help="Optional chat model override (defaults to .env configuration).")
     
     args = parser.parse_args()
     

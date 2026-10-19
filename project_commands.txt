@@ -42,7 +42,7 @@ python src\graph\visualizer.py
 4. SEMANTIC VECTOR INDEX (src/vector/index_builder.py)
 --------------------------------------------------------------------------------
 # Build the vector index (chunks code + generates embeddings)
-# (NOTE: Requires OPENAI_API_KEY in .env)
+# (NOTE: Requires AI_PROVIDER and the matching provider API key in .env)
 python src\vector\index_builder.py
 
 

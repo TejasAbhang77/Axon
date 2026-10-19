@@ -1,6 +1,6 @@
 import os
 import json
-from openai import OpenAI
+from src.llm_provider import create_client, get_chat_model, has_api_key
 
 class LLMQueryRouter:
     def __init__(self):
@@ -8,11 +8,7 @@ class LLMQueryRouter:
         Uses a highly efficient LLM to parse natural language queries into 
         exact intent structured data. Provides much higher accuracy than regex heuristics.
         """
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            self.client = None
-        else:
-            self.client = OpenAI(api_key=self.api_key)
+        self.client = create_client() if has_api_key() else None
 
     def extract_intent(self, query: str) -> dict:
         """
@@ -35,7 +31,7 @@ class LLMQueryRouter:
         )
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=get_chat_model(),
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": query}

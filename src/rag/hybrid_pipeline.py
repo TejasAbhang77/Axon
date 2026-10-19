@@ -2,12 +2,15 @@ import os
 import sys
 import networkx as nx
 from pathlib import Path
-from openai import OpenAI
+
+# Resolve project root before importing shared project modules.
+root_dir = Path(__file__).resolve().parent.parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
+from src.llm_provider import create_client, get_chat_model
 from dotenv import load_dotenv
 
-# Add project root to path for imports
-root_dir = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(root_dir))
 
 try:
     from src.vector.index_builder import VectorIndex
@@ -23,21 +26,17 @@ except ImportError as e:
 load_dotenv(root_dir / ".env")
 
 class HybridRAGPipeline:
-    def __init__(self, model: str = "gpt-4o-mini"):
+    def __init__(self, model: str | None = None):
         """
         The Hybrid RAG Pipeline.
         Fuses Structural Graph Data (NetworkX) with Semantic Vector Data (ChromaDB)
         to prevent LLM hallucinations on codebase architecture.
         """
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment variables.")
-            
-        self.client = OpenAI(api_key=self.api_key)
+        self.client = create_client()
         self.vector_index = VectorIndex()
         self.graph_builder = load_graph()
         self.router = LLMQueryRouter()
-        self.model = model
+        self.model = model or get_chat_model()
 
     def get_graph_context(self, query: str, depth: int = 5):
         """
@@ -202,7 +201,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Hybrid RAG Engine via NetworkX + ChromaDB")
     parser.add_argument("query", type=str, help="Question about the codebase.")
-    parser.add_argument("--model", type=str, default="gpt-4o-mini", help="LLM to use for generation.")
+    parser.add_argument("--model", type=str, default=None, help="Optional chat model override (defaults to .env configuration).")
     
     args = parser.parse_args()
     

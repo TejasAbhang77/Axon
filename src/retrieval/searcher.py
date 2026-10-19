@@ -56,8 +56,8 @@ def run_search(query: str, n_results: int = 5):
 
     except Exception as e:
         console.print(f"[red]Error during search: {e}[/]")
-        if "OPENAI_API_KEY" in str(e):
-             console.print("\n[bold]TIP:[/] Run `set OPENAI_API_KEY=your_key` or add it to a .env file.")
+        if "API key" in str(e):
+             console.print("\n[bold]TIP:[/] Set AI_PROVIDER and the matching API key in the project .env file.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Semantic code search using the hybrid-rag index.")

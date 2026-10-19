@@ -1,11 +1,15 @@
 import os
 import sys
 from pathlib import Path
-from openai import OpenAI
+
+# Resolve project root before importing shared project modules.
+root_dir = Path(__file__).resolve().parent.parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
+from src.llm_provider import create_client, get_chat_model
 from dotenv import load_dotenv
 
-root_dir = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(root_dir))
 
 try:
     from src.retrieval.graph_searcher import (
@@ -20,21 +24,17 @@ except ImportError as e:
 load_dotenv(root_dir / ".env")
 
 class GraphRAGPipeline:
-    def __init__(self, model: str = "gpt-4o-mini"):
+    def __init__(self, model: str | None = None):
         """
         The Graph-Only RAG Pipeline.
         Feeds ONLY Structural Graph Data (NetworkX) into the LLM. 
         It is completely blind to Semantic Vector Data. Excellent for 
         testing pure architectural questions.
         """
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment variables.")
-            
-        self.client = OpenAI(api_key=self.api_key)
+        self.client = create_client()
         self.graph_builder = load_graph()
         self.router = LLMQueryRouter()
-        self.model = model
+        self.model = model or get_chat_model()
 
     def get_graph_context(self, query: str, depth: int = 5):
         """Extracts the exact graph trace strings securely and returns JSON structure."""
